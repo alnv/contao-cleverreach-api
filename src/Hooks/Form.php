@@ -34,12 +34,12 @@ class Form {
         }
     }
 
-
+    /*
     public function compileFormFields( $arrFields, $intFormId, $objForm ) {
 
         foreach ( $arrFields as $objField ) {
 
-            if ( $objField->getCleverreachNewsletter ) {
+            if ( $objField->setCleverreachNewsletter ) {
 
                 $objCleverreachApi = new Cleverreach();
                 $objField->options = serialize( $objCleverreachApi->getGroups() );
@@ -48,4 +48,5 @@ class Form {
 
         return $arrFields;
     }
+    */
 }
