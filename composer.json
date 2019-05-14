@@ -1,0 +1,41 @@
+{
+  "name": "alnv/contao-cleverreach-api",
+  "description": "This extension provides cleverreach api for contao",
+  "type": "contao-bundle",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Alexander Naumov",
+      "homepage": "https://alexandernaumov.de",
+      "role": "Developer"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Alnv\\ContaoCleverreachApi\\": "src/"
+    },
+    "classmap": [
+      "src/Resources/contao/"
+    ],
+    "exclude-from-classmap": [
+      "src/Resources/contao/dca/",
+      "src/Resources/contao/config/",
+      "src/Resources/contao/languages/"
+    ]
+  },
+  "require": {
+    "php":">=7.1",
+    "contao/core-bundle":"~4.4"
+  },
+  "config": {
+    "preferred-install": "dist"
+  },
+  "extra": {
+    "contao": {
+      "sources": {
+        "": "system/modules/contao-cleverreach-api"
+      }
+    },
+    "contao-manager-plugin": "Alnv\\ContaoCleverreachApi\\ContaoManager\\Plugin"
+  }
+}
