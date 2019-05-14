@@ -21,6 +21,3 @@ Damit die Zuordnung korrekt funktioniert, müssen die Formularfelder bestimmte N
 * gender = Geschlecht (male/female)
 * firstname = Vorname
 * lastname = Nachname
-
-## Support
-[Alexander Naumov - Contao Entwickler](https://alexandernaumov.de/)
