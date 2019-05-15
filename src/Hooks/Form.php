@@ -19,6 +19,11 @@ class Form {
                 $arrNewsletter = [ $arrPost['newsletter'] ];
             }
 
+            if ( empty( $arrNewsletter ) || ( isset( $arrNewsletter[0] ) && $arrNewsletter[0] == '' ) ) {
+
+                return null;
+            }
+
             $objCleverreachApi = new Cleverreach();
             $objCleverreachApi->subscribe(
                 $arrNewsletter,
@@ -33,20 +38,4 @@ class Form {
             );
         }
     }
-
-    /*
-    public function compileFormFields( $arrFields, $intFormId, $objForm ) {
-
-        foreach ( $arrFields as $objField ) {
-
-            if ( $objField->setCleverreachNewsletter ) {
-
-                $objCleverreachApi = new Cleverreach();
-                $objField->options = serialize( $objCleverreachApi->getGroups() );
-            }
-        }
-
-        return $arrFields;
-    }
-    */
 }
