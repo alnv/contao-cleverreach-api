@@ -12,7 +12,7 @@ $GLOBALS['TL_CONFIG']['cleverreachTokenUrl'] = 'https://rest.cleverreach.com/oau
 ```
 
 ## Formulargenerator
-Das Formular für die Newsletter Anmeldung kannst mit dem Formulargenerator erstellen. Aktiviere dabei die *Cleverreach API verwenden* Checkbox. Optional kannst du auch eine Aktivierungsmail auswählen. 
+Das Formular für die Newsletter Anmeldung kannst Du mit dem Formulargenerator erstellen. Aktiviere dabei die *Cleverreach API verwenden* Checkbox. Optional kannst du auch eine Aktivierungsmail auswählen. 
 
 ## Zuordnung der Formularfelder
 Damit die Zuordnung korrekt funktioniert, müssen die Formularfelder bestimmte Namen haben:
