@@ -47,16 +47,33 @@ class Cleverreach {
 
         foreach ( $arrGroups as $strGroupId ) {
 
-            $objRequest->send('https://rest.cleverreach.com/v3/groups.json/'. $strGroupId .'/receivers', json_encode( $arrSubscriber, 512 ), 'POST' );
-
-            if ( $objRequest->hasError() ) {
-
-                \System::log( $objRequest->error, __METHOD__, TL_ERROR );
-            }
+            $objRequest->send( 'https://rest.cleverreach.com/v3/groups.json/' . $strGroupId, '', 'GET' );
 
             if ( $objRequest->response ) {
 
                 $arrResponse = json_decode( $objRequest->response, true );
+
+                if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+
+                    \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+
+                    continue;
+                }
+            }
+
+            $objRequest->send( 'https://rest.cleverreach.com/v3/groups.json/'. $strGroupId .'/receivers', json_encode( $arrSubscriber, 512 ), 'POST' );
+
+            if ( $objRequest->response ) {
+
+                $arrResponse = json_decode( $objRequest->response, true );
+
+                if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+
+                    \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+
+                    continue;
+                }
+
                 \System::log( 'Cleverreach API: You have new subscriber', __METHOD__, TL_ACCESS );
 
                 if ( $strFormId ) {
@@ -69,6 +86,18 @@ class Cleverreach {
                             "user_agent" => $_SERVER["HTTP_USER_AGENT"]
                         ]
                     ], 512 ), 'POST' );
+
+                    if ( $objRequest->response ) {
+
+                        $arrResponse = json_decode( $objRequest->response, true );
+
+                        if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+
+                            \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+
+                            continue;
+                        }
+                    }
                 }
             }
         }
@@ -83,14 +112,16 @@ class Cleverreach {
         $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
         $objRequest->send('https://rest.cleverreach.com/v3/groups.json', '', 'GET' );
 
-        if ( $objRequest->hasError() ) {
-
-            \System::log( $objRequest->error, __METHOD__, TL_ERROR );
-        }
-
         if ( $objRequest->response ) {
 
             $arrResponse = json_decode( $objRequest->response, true );
+
+            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+
+                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+
+                return $arrReturn;
+            }
 
             if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
 
@@ -116,14 +147,16 @@ class Cleverreach {
         $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
         $objRequest->send('https://rest.cleverreach.com/v3/forms.json', '', 'GET' );
 
-        if ( $objRequest->hasError() ) {
-
-            \System::log( $objRequest->error, __METHOD__, TL_ERROR );
-        }
-
         if ( $objRequest->response ) {
 
             $arrResponse = json_decode( $objRequest->response, true );
+
+            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+
+                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+
+                return $arrReturn;
+            }
 
             if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
 
