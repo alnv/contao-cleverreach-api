@@ -10,13 +10,14 @@ class Cleverreach {
     protected $strToken = null;
 
 
-    public function __construct() {
+    public function __construct( $arrOptions = [] ) {
 
         $objCurl = curl_init();
-        curl_setopt( $objCurl,CURLOPT_URL, \Config::get('cleverreachTokenUrl') );
-        curl_setopt( $objCurl,CURLOPT_USERPWD, \Config::get('cleverreachClientId') . ":" . \Config::get('cleverreachClientSecret') );
+        $arrOptions = $this->getOptions( $arrOptions );
+        curl_setopt( $objCurl,CURLOPT_URL, $arrOptions['cleverreachTokenUrl'] );
+        curl_setopt( $objCurl,CURLOPT_USERPWD, $arrOptions['cleverreachClientId'] . ":" . $arrOptions['cleverreachClientSecret'] );
         curl_setopt( $objCurl,CURLOPT_POSTFIELDS, [
-            'grant_type' => 'client_credentials'
+            'grant_type' => $arrOptions['cleverreachGrantType']
         ]);
         curl_setopt( $objCurl,CURLOPT_RETURNTRANSFER, true );
         $varResult = curl_exec( $objCurl );
@@ -25,7 +26,6 @@ class Cleverreach {
         if ( $varResult ) {
 
             $objResponse = json_decode( $varResult, true );
-
             $this->strToken = $objResponse['access_token'];
             $this->strTokenType = $objResponse['token_type'];
         }
@@ -81,7 +81,6 @@ class Cleverreach {
         $objRequest = new \Request();
         $objRequest->setHeader( 'Content-Type', 'application/json' );
         $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
-
         $objRequest->send('https://rest.cleverreach.com/v3/groups.json', '', 'GET' );
 
         if ( $objRequest->hasError() ) {
@@ -115,7 +114,6 @@ class Cleverreach {
         $objRequest = new \Request();
         $objRequest->setHeader( 'Content-Type', 'application/json' );
         $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
-
         $objRequest->send('https://rest.cleverreach.com/v3/forms.json', '', 'GET' );
 
         if ( $objRequest->hasError() ) {
@@ -140,5 +138,24 @@ class Cleverreach {
         }
 
         return $arrReturn;
+    }
+
+
+    protected function getOptions( $arrOptions ) {
+
+        $arrSettings = [
+
+            'cleverreachTokenUrl' => \Config::get( 'cleverreachTokenUrl' ),
+            'cleverreachClientId' => \Config::get( 'cleverreachClientId' ),
+            'cleverreachClientSecret' => \Config::get( 'cleverreachClientSecret' ),
+            'cleverreachGrantType' => 'client_credentials'
+        ];
+
+        foreach ( $arrOptions as $strName => $strValue ) {
+
+            $arrSettings[ $strName ] = $strValue ?: $arrSettings[ $strName ];
+        }
+
+        return $arrSettings;
     }
 }
