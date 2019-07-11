@@ -19,5 +19,6 @@ Damit die Zuordnung korrekt funktioniert, müssen die Formularfelder bestimmte N
 * email = E-Mail-Adresse (Pflichtfeld)
 * newsletter = Gruppen IDs (Pflichtfeld)
 * gender = Geschlecht (male/female)
+* tags = Komma getrennte Liste (als Verstecktes Feld)
 * firstname = Vorname
 * lastname = Nachname
