@@ -13,7 +13,6 @@ class Form {
 
         if ( $arrForm['useCleverreachApi'] ) {
 
-
             $arrNewsletter = $arrPost['newsletter'];
 
             if ( !is_array( $arrNewsletter ) ) {
@@ -27,6 +26,7 @@ class Form {
             }
 
             $arrTags = [];
+            $arrGlobalAttributes = [];
 
             if ( isset( $arrPost['tags'] ) && $arrPost['tags'] != '' ) {
 
@@ -41,6 +41,19 @@ class Form {
             }
 
             $objCleverreachApi = new Cleverreach();
+            $arrAttributes = $objCleverreachApi->getAttributes();
+
+            if ( is_array( $arrAttributes ) && !empty( $arrAttributes ) ) {
+
+                foreach ( $arrAttributes as $strValue => $strLabel ) {
+
+                    if ( isset( $arrPost[ $strValue ] ) ) {
+
+                        $arrGlobalAttributes[ $strValue ] = $arrPost[ $strValue ];
+                    }
+                }
+            }
+
             $objCleverreachApi->subscribe(
                 $arrNewsletter,
                 [
@@ -49,7 +62,7 @@ class Form {
                     'registered' => time(),
                     'email' => $arrPost['email'],
                     'source' => \Environment::get('url'),
-                    'global_attributes' => [ 'firstname' => $arrPost['firstname'], 'lastname' => $arrPost['lastname'], 'gender' => $arrPost['gender'] ]
+                    'global_attributes' => $arrGlobalAttributes
                 ],
                 $arrForm['cleverreachActiveFormId']
             );

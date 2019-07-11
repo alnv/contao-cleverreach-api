@@ -18,7 +18,5 @@ Das Formular für die Newsletter Anmeldung kannst mit dem Formulargenerator erst
 Damit die Zuordnung korrekt funktioniert, müssen die Formularfelder bestimmte Namen haben:
 * email = E-Mail-Adresse (Pflichtfeld)
 * newsletter = Gruppen IDs (Pflichtfeld)
-* gender = Geschlecht (male/female)
 * tags = Komma getrennte Liste (als Verstecktes Feld)
-* firstname = Vorname
-* lastname = Nachname
+* Attribute = Contao Feldname muss muss mit dem Cleverreach Feldnamen übereinstimmen

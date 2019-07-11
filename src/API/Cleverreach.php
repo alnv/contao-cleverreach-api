@@ -174,6 +174,88 @@ class Cleverreach {
     }
 
 
+    public function getAttributesByGroups( $arrGroupIds ) {
+
+        $arrReturn = [];
+
+        if ( empty( $arrGroupIds ) || !is_array( $arrGroupIds ) ) {
+
+            return $arrReturn;
+        }
+
+        foreach ( $arrGroupIds as $strGroupId ) {
+
+            $arrReturn[ $strGroupId ] = $this->getAttributesByGroup( $strGroupId );
+        }
+
+        return $arrReturn;
+    }
+
+
+    public function getAttributes() {
+
+        $arrReturn = [];
+        $objRequest = new \Request();
+        $objRequest->setHeader( 'Content-Type', 'application/json' );
+        $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
+        $objRequest->send('https://rest.cleverreach.com/v3/attributes.json', '', 'GET' );
+
+        if ( $objRequest->response ) {
+
+            $arrResponse = json_decode( $objRequest->response, true );
+
+            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+
+                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+
+                return $arrReturn;
+            }
+
+            if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
+
+                foreach ( $arrResponse as $arrAttribute ) {
+
+                    $arrReturn[ $arrAttribute['name'] ] = $arrAttribute['description'];
+                }
+            }
+        }
+
+        return $arrReturn;
+    }
+
+
+    protected function getAttributesByGroup( $strGroupId ) {
+
+        $arrReturn = [];
+        $objRequest = new \Request();
+        $objRequest->setHeader( 'Content-Type', 'application/json' );
+        $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
+        $objRequest->send('https://rest.cleverreach.com/v3/groups.json/' . $strGroupId . '/attributes', '', 'GET' );
+
+        if ( $objRequest->response ) {
+
+            $arrResponse = json_decode( $objRequest->response, true );
+
+            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+
+                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+
+                return $arrReturn;
+            }
+
+            if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
+
+                foreach ( $arrResponse as $arrAttribute ) {
+
+                    $arrReturn[ $arrAttribute['name'] ] = $arrAttribute['description'];
+                }
+            }
+        }
+
+        return $arrReturn;
+    }
+
+
     protected function getOptions( $arrOptions ) {
 
         $arrSettings = [
