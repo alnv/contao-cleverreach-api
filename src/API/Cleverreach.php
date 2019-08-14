@@ -224,7 +224,7 @@ class Cleverreach {
     }
 
 
-    protected function getAttributesByGroup( $strGroupId ) {
+    public function getAttributesByGroup( $strGroupId ) {
 
         $arrReturn = [];
         $objRequest = new \Request();
