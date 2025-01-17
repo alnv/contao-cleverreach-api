@@ -2,100 +2,126 @@
 
 namespace Alnv\ContaoCleverreachApi\API;
 
+use Contao\Config;
+use Contao\System;
+use Psr\Log\LogLevel;
+use GuzzleHttp\Client;
+use Contao\CoreBundle\Monolog\ContaoContext;
 
-class Cleverreach {
+class Cleverreach
+{
 
+    protected string $strTokenType = '';
 
-    protected $strTokenType = null;
-    protected $strToken = null;
+    protected string $strToken = '';
 
+    public function __construct($arrOptions = [])
+    {
 
-    public function __construct( $arrOptions = [] ) {
-
-        $objCurl = curl_init();
-        $arrOptions = $this->getOptions( $arrOptions );
-        curl_setopt( $objCurl,CURLOPT_URL, $arrOptions['cleverreachTokenUrl'] );
-        curl_setopt( $objCurl,CURLOPT_USERPWD, $arrOptions['cleverreachClientId'] . ":" . $arrOptions['cleverreachClientSecret'] );
-        curl_setopt( $objCurl,CURLOPT_POSTFIELDS, [
+        $objCurl = \curl_init();
+        $arrOptions = $this->getOptions($arrOptions);
+        \curl_setopt($objCurl, CURLOPT_URL, $arrOptions['cleverreachTokenUrl']);
+        \curl_setopt($objCurl, CURLOPT_USERPWD, $arrOptions['cleverreachClientId'] . ":" . $arrOptions['cleverreachClientSecret']);
+        \curl_setopt($objCurl, CURLOPT_POSTFIELDS, [
             'grant_type' => $arrOptions['cleverreachGrantType']
         ]);
-        curl_setopt( $objCurl,CURLOPT_RETURNTRANSFER, true );
-        $varResult = curl_exec( $objCurl );
-        curl_close ( $objCurl );
+        \curl_setopt($objCurl, CURLOPT_RETURNTRANSFER, true);
+        $varResult = \curl_exec($objCurl);
+        \curl_close($objCurl);
 
-        if ( $varResult ) {
-
-            $objResponse = json_decode( $varResult, true );
-            $this->strToken = $objResponse['access_token'];
-            $this->strTokenType = $objResponse['token_type'];
+        if ($varResult) {
+            $objResponse = \json_decode($varResult, true);
+            $this->strToken = $objResponse['access_token'] ?? '';
+            $this->strTokenType = $objResponse['token_type'] ?? '';
         }
     }
 
+    public function subscribe($arrGroups, $arrSubscriber, $strFormId = ''): void
+    {
 
-    public function subscribe( $arrGroups, $arrSubscriber, $strFormId = '' ) {
+        if (!is_array($arrGroups) || empty($arrGroups)) {
 
-        if ( !is_array( $arrGroups ) || empty( $arrGroups ) ) {
+            System::getContainer()
+                ->get('monolog.logger.contao')
+                ->log(LogLevel::ERROR, 'Cleverreach API: No subscriber groups defined', ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
-            \System::log( 'Cleverreach API: No subscriber groups defined', __METHOD__, TL_ERROR );
-
-            return null;
+            return;
         }
 
-        $objRequest = new \Request();
-        $objRequest->setHeader( 'Content-Type', 'application/json' );
-        $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
+        $objRequest = new Client();
+        foreach ($arrGroups as $strGroupId) {
 
-        foreach ( $arrGroups as $strGroupId ) {
+            $objResponse = $objRequest->get('https://rest.cleverreach.com/v3/groups.json/' . $strGroupId, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => ucfirst($this->strTokenType) . ' ' . $this->strToken
+                ]
+            ]);
 
-            $objRequest->send( 'https://rest.cleverreach.com/v3/groups.json/' . $strGroupId, '', 'GET' );
+            if ($strContents = $objResponse->getBody()->getContents()) {
 
-            if ( $objRequest->response ) {
+                $arrResponse = json_decode($strContents, true);
 
-                $arrResponse = json_decode( $objRequest->response, true );
+                if (isset($arrResponse['error']) && is_array($arrResponse['error'])) {
 
-                if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
-
-                    \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+                    System::getContainer()
+                        ->get('monolog.logger.contao')
+                        ->log(LogLevel::ERROR, 'Cleverreach API: ' . ($arrResponse['error']['message'] ?? ''), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
                     continue;
                 }
             }
 
-            $objRequest->send( 'https://rest.cleverreach.com/v3/groups.json/'. $strGroupId .'/receivers', json_encode( $arrSubscriber, 512 ), 'POST' );
+            $objResponse = $objRequest->post('https://rest.cleverreach.com/v3/groups.json/' . $strGroupId . '/receivers', [
+                'body' => \json_encode($arrSubscriber, 0, 512),
+                'headers' => [
+                    'Accept' => 'application/json',
+                    'Authorization' => ucfirst($this->strTokenType) . ' ' . $this->strToken,
+                    'Content-Type' => 'application/json'
+                ]
+            ]);
 
-            if ( $objRequest->response ) {
+            if ($strContents = $objResponse->getBody()->getContents()) {
 
-                $arrResponse = json_decode( $objRequest->response, true );
+                $arrResponse = json_decode($strContents, true);
 
-                if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+                if (isset($arrResponse['error']) && is_array($arrResponse['error'])) {
 
-                    \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+                    System::getContainer()
+                        ->get('monolog.logger.contao')
+                        ->log(LogLevel::ERROR, 'Cleverreach API: ' . ($arrResponse['error']['message'] ?? ''), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
                     continue;
                 }
 
-                \System::log( 'Cleverreach API: You have new subscriber', __METHOD__, TL_ACCESS );
+                System::getContainer()
+                    ->get('monolog.logger.contao')
+                    ->log(LogLevel::NOTICE, 'Cleverreach API: You have new subscriber', ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
-                if ( $strFormId ) {
+                if ($strFormId) {
 
-                    $objRequest->send('https://rest.cleverreach.com/v3/forms.json/'. $strFormId .'/send/activate', json_encode([
-                        'email' => $arrResponse['email'],
-                        'doidata' => [
-                            "user_ip"    => $_SERVER["REMOTE_ADDR"],
-                            "referer"    => $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"],
-                            "user_agent" => $_SERVER["HTTP_USER_AGENT"]
+                    $objResponse = $objRequest->post('https://rest.cleverreach.com/v3/forms.json/' . $strFormId . '/send/activate', [
+                        'body' => \json_encode([
+                            'email' => $arrResponse['email'],
+                            'doidata' => [
+                                "user_ip" => $_SERVER["REMOTE_ADDR"],
+                                "referer" => $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"],
+                                "user_agent" => $_SERVER["HTTP_USER_AGENT"]
+                            ]
+                        ], 0, 512),
+                        'headers' => [
+                            'Accept' => 'application/json',
+                            'Authorization' => ucfirst($this->strTokenType) . ' ' . $this->strToken,
+                            'Content-Type' => 'application/json'
                         ]
-                    ], 512 ), 'POST' );
+                    ]);
 
-                    if ( $objRequest->response ) {
-
-                        $arrResponse = json_decode( $objRequest->response, true );
-
-                        if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
-
-                            \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
-
-                            continue;
+                    if ($strContents = $objResponse->getBody()->getContents()) {
+                        $arrResponse = json_decode($strContents, true);
+                        if (isset($arrResponse['error']) && is_array($arrResponse['error'])) {
+                            System::getContainer()
+                                ->get('monolog.logger.contao')
+                                ->log(LogLevel::ERROR, 'Cleverreach API: ' . ($arrResponse['error']['message'] ?? ''), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
                         }
                     }
                 }
@@ -103,30 +129,33 @@ class Cleverreach {
         }
     }
 
-
-    public function getGroups() {
+    public function getGroups(): array
+    {
 
         $arrReturn = [];
-        $objRequest = new \Request();
-        $objRequest->setHeader( 'Content-Type', 'application/json' );
-        $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
-        $objRequest->send('https://rest.cleverreach.com/v3/groups.json', '', 'GET' );
+        $objRequest = new Client();
+        $objResponse = $objRequest->get('https://rest.cleverreach.com/v3/groups.json', [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Authorization' => ucfirst($this->strTokenType) . ' ' . $this->strToken
+            ]
+        ]);
 
-        if ( $objRequest->response ) {
+        if ($strContents = $objResponse->getBody()->getContents()) {
 
-            $arrResponse = json_decode( $objRequest->response, true );
+            $arrResponse = json_decode($strContents, true);
 
-            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+            if (isset($arrResponse['error']) && is_array($arrResponse['error'])) {
 
-                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+                System::getContainer()
+                    ->get('monolog.logger.contao')
+                    ->log(LogLevel::ERROR, 'Cleverreach API: ' . ($arrResponse['error']['message'] ?? ''), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
                 return $arrReturn;
             }
 
-            if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
-
-                foreach ( $arrResponse as $arrGroup ) {
-
+            if (is_array($arrResponse) && !empty($arrResponse)) {
+                foreach ($arrResponse as $arrGroup) {
                     $arrReturn[] = [
                         'label' => $arrGroup['name'],
                         'value' => $arrGroup['id']
@@ -138,84 +167,96 @@ class Cleverreach {
         return $arrReturn;
     }
 
-
-    public function getForms() {
+    public function getForms(): array
+    {
 
         $arrReturn = [];
-        $objRequest = new \Request();
-        $objRequest->setHeader( 'Content-Type', 'application/json' );
-        $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
-        $objRequest->send('https://rest.cleverreach.com/v3/forms.json', '', 'GET' );
+        $objRequest = new Client();
 
-        if ( $objRequest->response ) {
+        try {
 
-            $arrResponse = json_decode( $objRequest->response, true );
+            $objResponse = $objRequest->get('https://rest.cleverreach.com/v3/forms.json', [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => ucfirst($this->strTokenType) . ' ' . $this->strToken
+                ]
+            ]);
 
-            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+            if ($strContents = $objResponse->getBody()->getContents()) {
 
-                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+                $arrResponse = json_decode($strContents, true);
 
-                return $arrReturn;
-            }
+                if (isset($arrResponse['error']) && is_array($arrResponse['error'])) {
 
-            if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
+                    System::getContainer()
+                        ->get('monolog.logger.contao')
+                        ->log(LogLevel::ERROR, 'Cleverreach API: ' . ($arrResponse['error']['message'] ?? ''), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
-                foreach ( $arrResponse as $arrForm ) {
+                    return $arrReturn;
+                }
 
-                    $arrReturn[] = [
-                        'label' => $arrForm['name'],
-                        'value' => $arrForm['id']
-                    ];
+                if (is_array($arrResponse) && !empty($arrResponse)) {
+                    foreach ($arrResponse as $arrForm) {
+                        $arrReturn[] = [
+                            'label' => $arrForm['name'],
+                            'value' => $arrForm['id']
+                        ];
+                    }
                 }
             }
+        } catch (\Exception $objError) {
+
+            System::getContainer()
+                ->get('monolog.logger.contao')
+                ->log(LogLevel::ERROR, $objError->getMessage(), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
         }
 
         return $arrReturn;
     }
 
-
-    public function getAttributesByGroups( $arrGroupIds ) {
+    public function getAttributesByGroups($arrGroupIds): array
+    {
 
         $arrReturn = [];
-
-        if ( empty( $arrGroupIds ) || !is_array( $arrGroupIds ) ) {
-
+        if (empty($arrGroupIds) || !is_array($arrGroupIds)) {
             return $arrReturn;
         }
 
-        foreach ( $arrGroupIds as $strGroupId ) {
-
-            $arrReturn[ $strGroupId ] = $this->getAttributesByGroup( $strGroupId );
+        foreach ($arrGroupIds as $strGroupId) {
+            $arrReturn[$strGroupId] = $this->getAttributesByGroup($strGroupId);
         }
 
         return $arrReturn;
     }
 
-
-    public function getAttributes() {
+    public function getAttributes(): array
+    {
 
         $arrReturn = [];
-        $objRequest = new \Request();
-        $objRequest->setHeader( 'Content-Type', 'application/json' );
-        $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
-        $objRequest->send('https://rest.cleverreach.com/v3/attributes.json', '', 'GET' );
+        $objRequest = new Client();
+        $objResponse = $objRequest->get('https://rest.cleverreach.com/v3/attributes.json', [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Authorization' => ucfirst($this->strTokenType) . ' ' . $this->strToken
+            ]
+        ]);
 
-        if ( $objRequest->response ) {
+        if ($strContents = $objResponse->getBody()->getContents()) {
 
-            $arrResponse = json_decode( $objRequest->response, true );
+            $arrResponse = json_decode($strContents, true);
 
-            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+            if (isset($arrResponse['error']) && is_array($arrResponse['error'])) {
 
-                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+                System::getContainer()
+                    ->get('monolog.logger.contao')
+                    ->log(LogLevel::ERROR, 'Cleverreach API: ' . ($arrResponse['error']['message'] ?? ''), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
                 return $arrReturn;
             }
 
-            if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
-
-                foreach ( $arrResponse as $arrAttribute ) {
-
-                    $arrReturn[ $arrAttribute['name'] ] = $arrAttribute['description'];
+            if (is_array($arrResponse) && !empty($arrResponse)) {
+                foreach ($arrResponse as $arrAttribute) {
+                    $arrReturn[$arrAttribute['name']] = $arrAttribute['description'];
                 }
             }
         }
@@ -223,31 +264,35 @@ class Cleverreach {
         return $arrReturn;
     }
 
-
-    public function getAttributesByGroup( $strGroupId ) {
+    public function getAttributesByGroup($strGroupId): array
+    {
 
         $arrReturn = [];
-        $objRequest = new \Request();
-        $objRequest->setHeader( 'Content-Type', 'application/json' );
-        $objRequest->setHeader( 'Authorization', ucfirst( $this->strTokenType ) . ' ' . $this->strToken );
-        $objRequest->send('https://rest.cleverreach.com/v3/groups.json/' . $strGroupId . '/attributes', '', 'GET' );
 
-        if ( $objRequest->response ) {
+        $objRequest = new Client();
+        $objResponse = $objRequest->get('https://rest.cleverreach.com/v3/groups.json/' . $strGroupId . '/attributes', [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Authorization' => ucfirst($this->strTokenType) . ' ' . $this->strToken
+            ]
+        ]);
 
-            $arrResponse = json_decode( $objRequest->response, true );
+        if ($strContents = $objResponse->getBody()->getContents()) {
 
-            if ( isset( $arrResponse['error'] ) && is_array( $arrResponse['error'] ) ) {
+            $arrResponse = json_decode($strContents, true);
 
-                \System::log( 'Cleverreach API: ' . $arrResponse['error']['message'], __METHOD__, TL_ERROR );
+            if (isset($arrResponse['error']) && is_array($arrResponse['error'])) {
+
+                System::getContainer()
+                    ->get('monolog.logger.contao')
+                    ->log(LogLevel::ERROR, 'Cleverreach API: ' . ($arrResponse['error']['message'] ?? ''), ['contao' => new ContaoContext(__CLASS__ . '::' . __FUNCTION__)]);
 
                 return $arrReturn;
             }
 
-            if ( is_array( $arrResponse ) && !empty( $arrResponse ) ) {
-
-                foreach ( $arrResponse as $arrAttribute ) {
-
-                    $arrReturn[ $arrAttribute['name'] ] = $arrAttribute['description'];
+            if (is_array($arrResponse) && !empty($arrResponse)) {
+                foreach ($arrResponse as $arrAttribute) {
+                    $arrReturn[$arrAttribute['name']] = $arrAttribute['description'];
                 }
             }
         }
@@ -255,20 +300,18 @@ class Cleverreach {
         return $arrReturn;
     }
 
-
-    protected function getOptions( $arrOptions ) {
+    protected function getOptions($arrOptions): array
+    {
 
         $arrSettings = [
-
-            'cleverreachTokenUrl' => \Config::get( 'cleverreachTokenUrl' ),
-            'cleverreachClientId' => \Config::get( 'cleverreachClientId' ),
-            'cleverreachClientSecret' => \Config::get( 'cleverreachClientSecret' ),
+            'cleverreachTokenUrl' => Config::get('cleverreachTokenUrl'),
+            'cleverreachClientId' => Config::get('cleverreachClientId'),
+            'cleverreachClientSecret' => Config::get('cleverreachClientSecret'),
             'cleverreachGrantType' => 'client_credentials'
         ];
 
-        foreach ( $arrOptions as $strName => $strValue ) {
-
-            $arrSettings[ $strName ] = $strValue ?: $arrSettings[ $strName ];
+        foreach ($arrOptions as $strName => $strValue) {
+            $arrSettings[$strName] = $strValue ?: $arrSettings[$strName];
         }
 
         return $arrSettings;

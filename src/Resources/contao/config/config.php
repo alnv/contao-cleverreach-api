@@ -1,3 +1,5 @@
 <?php
 
-$GLOBALS['TL_HOOKS']['processFormData'][] = [ 'Alnv\ContaoCleverreachApi\Hooks\Form', 'processFormData' ];
+use Alnv\ContaoCleverreachApi\Hooks\Form;
+
+$GLOBALS['TL_HOOKS']['processFormData'][] = [Form::class, 'processFormData'];

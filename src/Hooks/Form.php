@@ -3,53 +3,48 @@
 namespace Alnv\ContaoCleverreachApi\Hooks;
 
 use Alnv\ContaoCleverreachApi\API\Cleverreach;
-use function Clue\StreamFilter\fun;
+use Contao\Environment;
+use Contao\StringUtil;
 
+class Form
+{
 
-class Form {
+    public function processFormData($arrPost, $arrForm, $arrFiles)
+    {
 
-
-    public function processFormData( $arrPost, $arrForm, $arrFiles ) {
-
-        if ( $arrForm['useCleverreachApi'] ) {
+        if ($arrForm['useCleverreachApi']) {
 
             $arrNewsletter = $arrPost['newsletter'];
 
-            if ( !is_array( $arrNewsletter ) ) {
-
-                $arrNewsletter = [ $arrPost['newsletter'] ];
+            if (!is_array($arrNewsletter)) {
+                $arrNewsletter = [$arrPost['newsletter']];
             }
 
-            if ( empty( $arrNewsletter ) || ( isset( $arrNewsletter[0] ) && $arrNewsletter[0] == '' ) ) {
-
-                return null;
+            if (empty($arrNewsletter) || (isset($arrNewsletter[0]) && $arrNewsletter[0] == '')) {
+                return;
             }
 
             $arrTags = [];
             $arrGlobalAttributes = [];
 
-            if ( isset( $arrPost['tags'] ) && $arrPost['tags'] != '' ) {
-
-                $arrTags = \StringUtil::trimsplit( ',', $arrPost['tags'] );
-                $arrTags = array_filter( $arrTags, function( $strTag ) {
-                    if ( $strTag == null || $strTag == '' ) {
+            if (isset($arrPost['tags']) && $arrPost['tags'] != '') {
+                $arrTags = StringUtil::trimsplit(',', $arrPost['tags']);
+                $arrTags = array_filter($arrTags, function ($strTag) {
+                    if ($strTag == null || $strTag == '') {
                         return false;
                     }
                     return $strTag;
                 });
-                $arrTags = array_unique( $arrTags );
+                $arrTags = array_unique($arrTags);
             }
 
             $objCleverreachApi = new Cleverreach();
             $arrAttributes = $objCleverreachApi->getAttributes();
 
-            if ( is_array( $arrAttributes ) && !empty( $arrAttributes ) ) {
-
-                foreach ( $arrAttributes as $strValue => $strLabel ) {
-
-                    if ( isset( $arrPost[ $strValue ] ) ) {
-
-                        $arrGlobalAttributes[ $strValue ] = $arrPost[ $strValue ];
+            if (!empty($arrAttributes)) {
+                foreach ($arrAttributes as $strValue => $strLabel) {
+                    if (isset($arrPost[$strValue])) {
+                        $arrGlobalAttributes[$strValue] = $arrPost[$strValue];
                     }
                 }
             }
@@ -61,7 +56,7 @@ class Form {
                     'tags' => $arrTags,
                     'registered' => time(),
                     'email' => $arrPost['email'],
-                    'source' => \Environment::get('url'),
+                    'source' => Environment::get('url'),
                     'global_attributes' => $arrGlobalAttributes
                 ],
                 $arrForm['cleverreachActiveFormId']
